@@ -1,0 +1,205 @@
+        -:    0:Source:src/graph.c
+        -:    1:#include <stdlib.h>
+        -:    2:#include <stdio.h>
+        -:    3:#include <stddef.h>
+        -:    4:#include <math.h> 
+        -:    5:
+        -:    6:#include "graph.h"
+        -:    7:#include "hole.h"
+        -:    8:
+        -:    9:
+        -:   10:
+        -:   11:/*this function fill an empty graph with relachionships, it means we puts the right
+        -:   12:values in the matrix representing the graph (la matrice d'adjacence)we consider that 
+        -:   13:every sommit of the graph has a maximum of 8 neighbors*/
+       19:   14:void initialize_graph_positions_classic(struct graph_t* g){ 
+       19:   15:    size_t graph_size = sqrt(g->t->size1); 
+      777:   16:    for (size_t i = 0; i < graph_size*graph_size-graph_size  ; i++) { 
+        -:   17:        //beginning with corners
+      758:   18:        if(i==0){
+       19:   19:            gsl_spmatrix_uint_set(g->t, i, i+1, DIR_EAST);
+       19:   20:            gsl_spmatrix_uint_set(g->t, i, i+graph_size, DIR_SOUTH);
+       19:   21:            gsl_spmatrix_uint_set(g->t, i, i+graph_size+1, DIR_SE);
+        -:   22:        }
+      739:   23:        else if(i==graph_size-1){
+       19:   24:            gsl_spmatrix_uint_set(g->t, i, i+graph_size, DIR_SOUTH);
+       19:   25:            gsl_spmatrix_uint_set(g->t, i, i-1, DIR_WEST);
+       19:   26:            gsl_spmatrix_uint_set(g->t, i, i+graph_size-1, DIR_SW);
+        -:   27:        }
+      720:   28:        else if(i%graph_size==0){
+       84:   29:            gsl_spmatrix_uint_set(g->t, i, i+1, DIR_EAST);
+       84:   30:            gsl_spmatrix_uint_set(g->t, i, i+graph_size, DIR_SOUTH);
+       84:   31:            gsl_spmatrix_uint_set(g->t, i, i+graph_size+1, DIR_SE);
+       84:   32:            gsl_spmatrix_uint_set(g->t, i, i-graph_size, DIR_NORTH);
+       84:   33:            gsl_spmatrix_uint_set(g->t, i, i-graph_size+1, DIR_NE);
+        -:   34:        }
+      636:   35:        else if(i%graph_size==graph_size-1){
+       84:   36:            gsl_spmatrix_uint_set(g->t, i, i+graph_size, DIR_SOUTH);
+       84:   37:            gsl_spmatrix_uint_set(g->t, i, i-1, DIR_WEST);
+       84:   38:            gsl_spmatrix_uint_set(g->t, i, i+graph_size-1, DIR_SW);
+       84:   39:            gsl_spmatrix_uint_set(g->t, i, i-graph_size-1, DIR_NW);
+       84:   40:            gsl_spmatrix_uint_set(g->t, i, i-graph_size, DIR_NORTH);
+        -:   41:        }
+        -:   42:
+      552:   43:        else if(i<graph_size && i>0){
+       84:   44:            gsl_spmatrix_uint_set(g->t, i, i+1, DIR_EAST);
+       84:   45:            gsl_spmatrix_uint_set(g->t, i, i+graph_size, DIR_SOUTH);
+       84:   46:            gsl_spmatrix_uint_set(g->t, i, i+graph_size+1, DIR_SE);
+       84:   47:            gsl_spmatrix_uint_set(g->t, i, i-1, DIR_WEST);
+       84:   48:            gsl_spmatrix_uint_set(g->t, i, i+graph_size-1, DIR_SW);
+        -:   49:        }
+        -:   50:        else{
+      468:   51:            gsl_spmatrix_uint_set(g->t, i, i+1, DIR_EAST);
+      468:   52:            gsl_spmatrix_uint_set(g->t, i, i-1, DIR_WEST);
+      468:   53:            gsl_spmatrix_uint_set(g->t, i, i+graph_size, DIR_SOUTH);
+      468:   54:            gsl_spmatrix_uint_set(g->t, i, i+graph_size+1, DIR_SE);
+      468:   55:            gsl_spmatrix_uint_set(g->t, i, i+graph_size-1, DIR_SW);
+      468:   56:            gsl_spmatrix_uint_set(g->t, i, i-graph_size, DIR_NORTH);
+      468:   57:            gsl_spmatrix_uint_set(g->t, i, i-graph_size+1, DIR_NE);
+      468:   58:            gsl_spmatrix_uint_set(g->t, i, i-graph_size-1, DIR_NW);
+        -:   59:        }
+        -:   60:
+        -:   61:    }
+        -:   62:    
+      141:   63:    for(size_t i=graph_size*graph_size-graph_size; i<graph_size*graph_size; i++){
+        -:   64:
+      122:   65:        if(i==graph_size*graph_size-1){
+       19:   66:            gsl_spmatrix_uint_set(g->t, i, i-1, DIR_WEST);
+       19:   67:            gsl_spmatrix_uint_set(g->t, i, i-graph_size, DIR_NORTH);
+       19:   68:            gsl_spmatrix_uint_set(g->t, i, i-graph_size-1, DIR_NW);
+        -:   69:        }
+      103:   70:        else if(i==graph_size*graph_size-graph_size-1){
+    #####:   71:            gsl_spmatrix_uint_set(g->t, i, i+1, DIR_EAST);
+    #####:   72:            gsl_spmatrix_uint_set(g->t, i, i-graph_size, DIR_NORTH);
+    #####:   73:            gsl_spmatrix_uint_set(g->t, i, i-graph_size+1, DIR_NE);
+        -:   74:        }
+        -:   75:        else{
+      103:   76:            gsl_spmatrix_uint_set(g->t, i, i+1, DIR_EAST);
+      103:   77:            gsl_spmatrix_uint_set(g->t, i, i-graph_size, DIR_NORTH);
+      103:   78:            gsl_spmatrix_uint_set(g->t, i, i-graph_size+1, DIR_NE);
+      103:   79:            gsl_spmatrix_uint_set(g->t, i, i-1, DIR_WEST);
+      103:   80:            gsl_spmatrix_uint_set(g->t, i, i-graph_size-1, DIR_NW);
+        -:   81:        }
+        -:   82:    }                   
+       19:   83:}
+        -:   84:
+        -:   85:/*this function create an empty graph  with the size length*length, a matrix of size length*length
+        -:   86:is needed to store a graph of size length */
+       18:   87:struct graph_t * initialize_graph(unsigned int length){  
+       18:   88:    gsl_spmatrix_uint *mat = gsl_spmatrix_uint_alloc(length* length, length*length);
+      873:   89:    for (int i = 0; i < length*length; i++) {
+    60798:   90:        for (int j = 0; j < length* length; j++) {
+    59943:   91:            gsl_spmatrix_uint_set(mat, i, j, NO_DIR);
+        -:   92:        }
+        -:   93:    }
+       18:   94:    struct graph_t * grid=(struct graph_t *)malloc(sizeof(struct graph_t)); 
+       18:   95:    grid->num_vertices = length*length;
+       18:   96:    grid->t=mat;
+       18:   97:    initialize_graph_positions_classic(grid);
+       18:   98:    gsl_spmatrix_uint* csr = gsl_spmatrix_uint_compress(mat, GSL_SPMATRIX_CSR);
+       18:   99:    gsl_spmatrix_uint_free(mat);
+       18:  100:    grid->t = csr;
+       18:  101:    return grid;
+        -:  102:}
+        -:  103:
+        -:  104:
+    #####:  105:void display_matrix_of_graph(struct graph_t * g){
+    #####:  106:    for (size_t i = 0; i < g->t->size1; ++i) {
+    #####:  107:        for (size_t j = 0; j < g->t->size2; ++j) {
+    #####:  108:            size_t row_start = g->t->p[i];
+    #####:  109:            size_t row_end = g->t->p[i + 1];
+    #####:  110:            int found = 0;
+    #####:  111:            for (size_t pos = row_start; pos < row_end; ++pos) {
+    #####:  112:                if (g->t->i[pos] == j) {
+    #####:  113:                    printf("%d ", g->t->data[pos]);
+    #####:  114:                    found = 1;
+    #####:  115:                    break;
+        -:  116:                }
+        -:  117:            }
+    #####:  118:            if (!found) {
+    #####:  119:                printf("0 ");
+        -:  120:            }
+        -:  121:        }
+    #####:  122:        printf("\n");
+        -:  123:    }
+    #####:  124:    printf("\n");
+        -:  125:
+    #####:  126:}
+        -:  127:
+        -:  128:
+    #####:  129:void initialize_donut_graph(struct graph_t* g, unsigned int m){
+    #####:  130:    make_hole(g, (m/3)*m + m/3 , m/3);
+    #####:  131:    g->num_vertices = 8*m*m/9;
+    #####:  132:}
+        -:  133:
+    #####:  134:void initialize_trefle_graph(struct graph_t* g, unsigned int m){
+    #####:  135:    make_hole(g, m/5*m + m/5, m/5 );
+    #####:  136:    make_hole(g, m/5*m + 3*m/5 , m/5 );
+    #####:  137:    make_hole(g, 3*m/5*m + m/5, m/5 );
+    #####:  138:    make_hole(g, 3*m/5*m + 3*m/5, m/5 );
+    #####:  139:    g->num_vertices = 21*m*m / 25 ;
+    #####:  140:}
+        -:  141:
+    #####:  142:void initialize_eight_graph(struct graph_t* g , unsigned int m){
+    #####:  143:    make_hole(g, 2*(m/4) * m + m/4, m/4 );
+    #####:  144:    make_hole(g, (m/4) * m + 2*m/4 , m/4 );
+    #####:  145:    g->num_vertices = 7*m*m / 8 ;
+    #####:  146:}
+        -:  147:
+        -:  148:
+        -:  149:
+        -:  150:/*this function makes a graph depending on the type of graph taken as argument
+        -:  151:*/
+        3:  152:void make_graph(struct graph_t * g, unsigned int m ,char s ){ 
+        3:  153:    switch(s){
+        3:  154:        case 'c' :
+        3:  155:            g->num_vertices = m*m;
+        3:  156:            break;
+    #####:  157:        case 'd':
+    #####:  158:            initialize_donut_graph(g, m);
+    #####:  159:            break;
+    #####:  160:        case 't':
+    #####:  161:            initialize_trefle_graph(g, m);
+    #####:  162:            break;
+    #####:  163:        case '8':
+    #####:  164:            initialize_eight_graph(g, m);
+    #####:  165:            break;
+    #####:  166:        default :
+    #####:  167:            break;
+        -:  168:  }
+        3:  169:}
+        -:  170:
+        -:  171:
+    #####:  172:gsl_spmatrix_uint* copy_matrix(struct graph_t *graph,int size) {
+    #####:  173:  gsl_spmatrix_uint *graph_copy=gsl_spmatrix_uint_alloc(graph->t->size1,graph->t->size2);
+    #####:  174:  for (unsigned int i = 0; i <size*size ; i++) {
+    #####:  175:    for (unsigned int k = 0; k < size*size; k++) {
+    #####:  176:      if (gsl_spmatrix_uint_get(graph->t,i,k) == 1){
+    #####:  177:	      gsl_spmatrix_uint_set(graph_copy, i, k, 1);
+        -:  178:      }
+        -:  179:    }
+        -:  180:  }
+    #####:  181:  return graph_copy;
+        -:  182:}
+        -:  183:
+        -:  184:
+        -:  185:
+        -:  186://this function can be useful for checking if a vertex can be occupied by a queen in a game
+      210:  187:int empty_cell(struct graph_t *graph, int x, unsigned int size){
+      210:  188:    unsigned int row_start=graph->t->p[x];
+      210:  189:    unsigned int row_end=graph->t->p[x+1];
+     4938:  190:    for(size_t j=row_start; j<row_end; j++){
+     4938:  191:        unsigned int neighbor=graph->t->i[j];
+     4938:  192:        if(neighbor==x){
+      210:  193:            return 0;
+        -:  194:        }
+        -:  195:    }
+    #####:  196:    return 1;
+        -:  197:}
+        -:  198:
+        -:  199:
+        -:  200://this function frees the momory blocks allocated for the graph
+       20:  201:void free_graph(struct graph_t* g){
+       20:  202:    gsl_spmatrix_uint_free(g->t);
+       20:  203:    free(g);
+       20:  204:}

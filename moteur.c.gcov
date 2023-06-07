@@ -1,0 +1,659 @@
+        -:    0:Source:src/moteur.c
+        -:    1:#include <stdio.h>
+        -:    2:#include "moteur.h"
+        -:    3:#include <math.h>
+        -:    4:
+        -:    5:#include <gsl/gsl_spmatrix.h>
+        -:    6:
+        -:    7:#include <gsl/gsl_spmatrix_uint.h>
+        -:    8:#include <gsl/gsl_spblas.h>
+        -:    9:#include <stddef.h>
+        -:   10:
+        -:   11:/*this function puts an arrow in the position idx in the graph, it puts NO_DIT with all of its neighbors*/
+       3*:   12:void put_arrow(struct graph_t* graph, unsigned int idx){
+     147*:   13:    for(unsigned int i=0; i< graph->num_vertices; i++){
+     144*:   14:        delete_element(graph, i, idx);
+        -:   15:    }
+     147*:   16:    for(unsigned int i=0; i<graph->num_vertices; i++){
+     144*:   17:        delete_element(graph, idx, i);
+        -:   18:    }
+       3*:   19:}
+------------------
+put_arrow:
+    #####:   12:void put_arrow(struct graph_t* graph, unsigned int idx){
+    #####:   13:    for(unsigned int i=0; i< graph->num_vertices; i++){
+    #####:   14:        delete_element(graph, i, idx);
+        -:   15:    }
+    #####:   16:    for(unsigned int i=0; i<graph->num_vertices; i++){
+    #####:   17:        delete_element(graph, idx, i);
+        -:   18:    }
+    #####:   19:}
+------------------
+put_arrow:
+        3:   12:void put_arrow(struct graph_t* graph, unsigned int idx){
+      147:   13:    for(unsigned int i=0; i< graph->num_vertices; i++){
+      144:   14:        delete_element(graph, i, idx);
+        -:   15:    }
+      147:   16:    for(unsigned int i=0; i<graph->num_vertices; i++){
+      144:   17:        delete_element(graph, idx, i);
+        -:   18:    }
+        3:   19:}
+------------------
+        -:   20://a function that removes a specific element (i.e., edge) from the graph.
+     289*:   21:void delete_element(struct graph_t* graph, unsigned int i, unsigned int j){
+     289*:   22:    size_t row_start=graph->t->p[i];
+     289*:   23:    size_t row_end=graph->t->p[i+1];
+        -:   24:
+   12701*:   25:    for(size_t k=row_start; k<row_end; k++){
+   12412*:   26:        if(graph->t->i[k]==j){
+  497810*:   27:            for(size_t l=k; l<graph->t->nz-1; l++){
+  497526*:   28:                graph->t->data[l]=graph->t->data[l+1];
+  497526*:   29:                graph->t->i[l]=graph->t->i[l+1];
+        -:   30:            }
+     284*:   31:            graph->t->nz--;
+    8537*:   32:            for(size_t l=i+1; l<graph->t->size1+1; l++){
+    8253*:   33:                graph->t->p[l]--;
+        -:   34:            }
+        -:   35:        }
+        -:   36:    }
+     289*:   37:}
+------------------
+delete_element:
+    #####:   21:void delete_element(struct graph_t* graph, unsigned int i, unsigned int j){
+    #####:   22:    size_t row_start=graph->t->p[i];
+    #####:   23:    size_t row_end=graph->t->p[i+1];
+        -:   24:
+    #####:   25:    for(size_t k=row_start; k<row_end; k++){
+    #####:   26:        if(graph->t->i[k]==j){
+    #####:   27:            for(size_t l=k; l<graph->t->nz-1; l++){
+    #####:   28:                graph->t->data[l]=graph->t->data[l+1];
+    #####:   29:                graph->t->i[l]=graph->t->i[l+1];
+        -:   30:            }
+    #####:   31:            graph->t->nz--;
+    #####:   32:            for(size_t l=i+1; l<graph->t->size1+1; l++){
+    #####:   33:                graph->t->p[l]--;
+        -:   34:            }
+        -:   35:        }
+        -:   36:    }
+    #####:   37:}
+------------------
+delete_element:
+      289:   21:void delete_element(struct graph_t* graph, unsigned int i, unsigned int j){
+      289:   22:    size_t row_start=graph->t->p[i];
+      289:   23:    size_t row_end=graph->t->p[i+1];
+        -:   24:
+    12701:   25:    for(size_t k=row_start; k<row_end; k++){
+    12412:   26:        if(graph->t->i[k]==j){
+   497810:   27:            for(size_t l=k; l<graph->t->nz-1; l++){
+   497526:   28:                graph->t->data[l]=graph->t->data[l+1];
+   497526:   29:                graph->t->i[l]=graph->t->i[l+1];
+        -:   30:            }
+      284:   31:            graph->t->nz--;
+     8537:   32:            for(size_t l=i+1; l<graph->t->size1+1; l++){
+     8253:   33:                graph->t->p[l]--;
+        -:   34:            }
+        -:   35:        }
+        -:   36:    }
+      289:   37:}
+------------------
+        -:   38:/*a function that returns an array of all available destinations for a player given a 
+        -:   39:current position on the board. This function takes into account the presence of 
+        -:   40:other players and is used to generate valid moves.*/
+    #####:   41:unsigned int* available_dst_all(struct graph_t *graph, unsigned int pos, const struct player_t player){
+    #####:   42:    unsigned int* t=(unsigned int *)malloc(sizeof(unsigned int)*(graph->t->size1-1));
+    #####:   43:    for(int i = 0 ; i<graph->t->size1-1 ; i++){
+    #####:   44:        t[i]=UINT_MAX;
+        -:   45:    }
+    #####:   46:    t[0]=0;
+    #####:   47:    unsigned int i=1;
+    #####:   48:    for(enum dir_t dir = 1; dir <= 8; dir++) {
+    #####:   49:        unsigned int tmp=pos;
+    #####:   50:        while(get_neighbor_gen(tmp, dir, graph, player)!=UINT_MAX){
+    #####:   51:            t[i]=get_neighbor_gen(tmp, dir, graph, player);
+    #####:   52:            tmp=t[i];
+    #####:   53:            i++;
+        -:   54:        }
+        -:   55:    }
+    #####:   56:    t[0]=i-1;
+    #####:   57:    return t;
+        -:   58:}
+------------------
+available_dst_all:
+    #####:   41:unsigned int* available_dst_all(struct graph_t *graph, unsigned int pos, const struct player_t player){
+    #####:   42:    unsigned int* t=(unsigned int *)malloc(sizeof(unsigned int)*(graph->t->size1-1));
+    #####:   43:    for(int i = 0 ; i<graph->t->size1-1 ; i++){
+    #####:   44:        t[i]=UINT_MAX;
+        -:   45:    }
+    #####:   46:    t[0]=0;
+    #####:   47:    unsigned int i=1;
+    #####:   48:    for(enum dir_t dir = 1; dir <= 8; dir++) {
+    #####:   49:        unsigned int tmp=pos;
+    #####:   50:        while(get_neighbor_gen(tmp, dir, graph, player)!=UINT_MAX){
+    #####:   51:            t[i]=get_neighbor_gen(tmp, dir, graph, player);
+    #####:   52:            tmp=t[i];
+    #####:   53:            i++;
+        -:   54:        }
+        -:   55:    }
+    #####:   56:    t[0]=i-1;
+    #####:   57:    return t;
+        -:   58:}
+------------------
+available_dst_all:
+    #####:   41:unsigned int* available_dst_all(struct graph_t *graph, unsigned int pos, const struct player_t player){
+    #####:   42:    unsigned int* t=(unsigned int *)malloc(sizeof(unsigned int)*(graph->t->size1-1));
+    #####:   43:    for(int i = 0 ; i<graph->t->size1-1 ; i++){
+    #####:   44:        t[i]=UINT_MAX;
+        -:   45:    }
+    #####:   46:    t[0]=0;
+    #####:   47:    unsigned int i=1;
+    #####:   48:    for(enum dir_t dir = 1; dir <= 8; dir++) {
+    #####:   49:        unsigned int tmp=pos;
+    #####:   50:        while(get_neighbor_gen(tmp, dir, graph, player)!=UINT_MAX){
+    #####:   51:            t[i]=get_neighbor_gen(tmp, dir, graph, player);
+    #####:   52:            tmp=t[i];
+    #####:   53:            i++;
+        -:   54:        }
+        -:   55:    }
+    #####:   56:    t[0]=i-1;
+    #####:   57:    return t;
+        -:   58:}
+------------------
+        -:   59:/*a function that returns the neighbor of a given position in a particular
+        -:   60: direction, considering the presence of other players.*/
+       3*:   61:unsigned int get_neighbor_queens(unsigned int pos, enum dir_t direction, struct graph_t* graph, unsigned int* curr_queens,unsigned int* other_queens , unsigned int length){
+        -:   62:
+       3*:   63:    unsigned int row_start=graph->t->p[pos];
+       3*:   64:    unsigned int row_end=graph->t->p[pos+1];
+     118*:   65:    for(size_t j=row_start; j<row_end; j++){
+     117*:   66:        unsigned int neighbor=graph->t->i[j];
+     117*:   67:        unsigned int dir=graph->t->data[j];
+     117*:   68:        if(dir==direction && (!element_in_array(other_queens,length,neighbor))&&(!element_in_array(curr_queens,length,neighbor))){
+       2*:   69:            return neighbor;
+        -:   70:        }
+        -:   71:    }
+       1*:   72:    return UINT_MAX;
+        -:   73:
+        -:   74:}
+------------------
+get_neighbor_queens:
+    #####:   61:unsigned int get_neighbor_queens(unsigned int pos, enum dir_t direction, struct graph_t* graph, unsigned int* curr_queens,unsigned int* other_queens , unsigned int length){
+        -:   62:
+    #####:   63:    unsigned int row_start=graph->t->p[pos];
+    #####:   64:    unsigned int row_end=graph->t->p[pos+1];
+    #####:   65:    for(size_t j=row_start; j<row_end; j++){
+    #####:   66:        unsigned int neighbor=graph->t->i[j];
+    #####:   67:        unsigned int dir=graph->t->data[j];
+    #####:   68:        if(dir==direction && (!element_in_array(other_queens,length,neighbor))&&(!element_in_array(curr_queens,length,neighbor))){
+    #####:   69:            return neighbor;
+        -:   70:        }
+        -:   71:    }
+    #####:   72:    return UINT_MAX;
+        -:   73:
+        -:   74:}
+------------------
+get_neighbor_queens:
+        3:   61:unsigned int get_neighbor_queens(unsigned int pos, enum dir_t direction, struct graph_t* graph, unsigned int* curr_queens,unsigned int* other_queens , unsigned int length){
+        -:   62:
+        3:   63:    unsigned int row_start=graph->t->p[pos];
+        3:   64:    unsigned int row_end=graph->t->p[pos+1];
+      118:   65:    for(size_t j=row_start; j<row_end; j++){
+      117:   66:        unsigned int neighbor=graph->t->i[j];
+      117:   67:        unsigned int dir=graph->t->data[j];
+      117:   68:        if(dir==direction && (!element_in_array(other_queens,length,neighbor))&&(!element_in_array(curr_queens,length,neighbor))){
+        2:   69:            return neighbor;
+        -:   70:        }
+        -:   71:    }
+        1:   72:    return UINT_MAX;
+        -:   73:
+        -:   74:}
+------------------
+        -:   75:
+        -:   76:/*this function updates the graph taken as argument and the array of positions queens with the new 
+        -:   77:position of the queen after the move*/
+       2*:   78:void execute_move(struct move_t move, struct graph_t *graph, unsigned int *queens){
+       2*:   79:    unsigned int length=sqrt(graph->t->size1);
+       2*:   80:    if((int)move.queen_dst>=0){
+       2*:   81:        int queen_number = 4*(length/10 + 1 );
+       3*:   82:        for(int  i =0; i < queen_number ; ++i ){
+       3*:   83:            if ( queens[i] == move.queen_src ){ //we look for the ex_position and then we put the new position
+       2*:   84:                queens[i] = move.queen_dst;
+       2*:   85:                break;
+        -:   86:            }
+        -:   87:        }
+       2*:   88:        if((int)move.arrow_dst!=-1 && move.arrow_dst!=UINT_MAX){
+       2*:   89:            put_arrow(graph, move.arrow_dst);
+        -:   90:        }
+        -:   91:    }
+       2*:   92:}
+------------------
+execute_move:
+    #####:   78:void execute_move(struct move_t move, struct graph_t *graph, unsigned int *queens){
+    #####:   79:    unsigned int length=sqrt(graph->t->size1);
+    #####:   80:    if((int)move.queen_dst>=0){
+    #####:   81:        int queen_number = 4*(length/10 + 1 );
+    #####:   82:        for(int  i =0; i < queen_number ; ++i ){
+    #####:   83:            if ( queens[i] == move.queen_src ){ //we look for the ex_position and then we put the new position
+    #####:   84:                queens[i] = move.queen_dst;
+    #####:   85:                break;
+        -:   86:            }
+        -:   87:        }
+    #####:   88:        if((int)move.arrow_dst!=-1 && move.arrow_dst!=UINT_MAX){
+    #####:   89:            put_arrow(graph, move.arrow_dst);
+        -:   90:        }
+        -:   91:    }
+    #####:   92:}
+------------------
+execute_move:
+        2:   78:void execute_move(struct move_t move, struct graph_t *graph, unsigned int *queens){
+        2:   79:    unsigned int length=sqrt(graph->t->size1);
+        2:   80:    if((int)move.queen_dst>=0){
+        2:   81:        int queen_number = 4*(length/10 + 1 );
+        3:   82:        for(int  i =0; i < queen_number ; ++i ){
+        3:   83:            if ( queens[i] == move.queen_src ){ //we look for the ex_position and then we put the new position
+        2:   84:                queens[i] = move.queen_dst;
+        2:   85:                break;
+        -:   86:            }
+        -:   87:        }
+        2:   88:        if((int)move.arrow_dst!=-1 && move.arrow_dst!=UINT_MAX){
+        2:   89:            put_arrow(graph, move.arrow_dst);
+        -:   90:        }
+        -:   91:    }
+        2:   92:}
+------------------
+        -:   93://a function that checks if a particular element is present in an array.
+     232*:   94:int element_in_array(unsigned int *array, unsigned int size, unsigned int element){
+     584*:   95:    for(unsigned int j=0; j<size; j++){
+     352*:   96:        if(array[j]==element){
+    #####:   97:            return 1;
+        -:   98:        }
+        -:   99:    }
+     232*:  100:    return 0;
+        -:  101:}
+------------------
+element_in_array:
+    #####:   94:int element_in_array(unsigned int *array, unsigned int size, unsigned int element){
+    #####:   95:    for(unsigned int j=0; j<size; j++){
+    #####:   96:        if(array[j]==element){
+    #####:   97:            return 1;
+        -:   98:        }
+        -:   99:    }
+    #####:  100:    return 0;
+        -:  101:}
+------------------
+element_in_array:
+      232:   94:int element_in_array(unsigned int *array, unsigned int size, unsigned int element){
+      584:   95:    for(unsigned int j=0; j<size; j++){
+      352:   96:        if(array[j]==element){
+    #####:   97:            return 1;
+        -:   98:        }
+        -:   99:    }
+      232:  100:    return 0;
+        -:  101:}
+------------------
+        -:  102:
+        -:  103:// the function check if there is an available direction for the the queen else return NO_DIR
+    #####:  104:enum dir_t available_dir(unsigned int queen, struct graph_t *graph, struct player_t player){
+    #####:  105:    enum dir_t dir=rand()%8+1;
+    #####:  106:    int cmp=0;
+    #####:  107:    while(get_neighbor_gen(queen,dir,graph,player)==UINT_MAX  && cmp<9){
+    #####:  108:        dir++;
+    #####:  109:        dir=dir%9;
+    #####:  110:        if(dir==0) dir++;
+    #####:  111:        cmp++;
+        -:  112:    }
+    #####:  113:    if(cmp==9){
+    #####:  114:        return NO_DIR;
+        -:  115:    }
+    #####:  116:    return dir;
+        -:  117:}
+------------------
+available_dir:
+    #####:  104:enum dir_t available_dir(unsigned int queen, struct graph_t *graph, struct player_t player){
+    #####:  105:    enum dir_t dir=rand()%8+1;
+    #####:  106:    int cmp=0;
+    #####:  107:    while(get_neighbor_gen(queen,dir,graph,player)==UINT_MAX  && cmp<9){
+    #####:  108:        dir++;
+    #####:  109:        dir=dir%9;
+    #####:  110:        if(dir==0) dir++;
+    #####:  111:        cmp++;
+        -:  112:    }
+    #####:  113:    if(cmp==9){
+    #####:  114:        return NO_DIR;
+        -:  115:    }
+    #####:  116:    return dir;
+        -:  117:}
+------------------
+available_dir:
+    #####:  104:enum dir_t available_dir(unsigned int queen, struct graph_t *graph, struct player_t player){
+    #####:  105:    enum dir_t dir=rand()%8+1;
+    #####:  106:    int cmp=0;
+    #####:  107:    while(get_neighbor_gen(queen,dir,graph,player)==UINT_MAX  && cmp<9){
+    #####:  108:        dir++;
+    #####:  109:        dir=dir%9;
+    #####:  110:        if(dir==0) dir++;
+    #####:  111:        cmp++;
+        -:  112:    }
+    #####:  113:    if(cmp==9){
+    #####:  114:        return NO_DIR;
+        -:  115:    }
+    #####:  116:    return dir;
+        -:  117:}
+------------------
+        -:  118:
+        -:  119:
+        -:  120:/*a function that returns an array of available destinations for a player given a 
+        -:  121:direction of movement.*/
+       8*:  122:unsigned int* available_dst(struct graph_t *graph, enum dir_t dir, unsigned int pos,struct player_t player){
+       8*:  123:    unsigned int length=sqrt(graph->t->size1);
+       8*:  124:    unsigned int* t=(unsigned int *)malloc(sizeof(unsigned int)*(length*length));
+     520*:  125:    for(int i = 0 ; i<length*length; i++){
+     512*:  126:        t[i]=UINT_MAX;
+        -:  127:    }
+       8*:  128:    t[0]=0;
+       8*:  129:    int i=1;
+       8*:  130:    unsigned int tmp=pos;
+      29*:  131:    while(get_neighbor_gen(tmp,dir,graph,player)!=UINT_MAX){
+      21*:  132:        t[i]=get_neighbor_gen(tmp,dir,graph,player);
+      21*:  133:        tmp=t[i];
+      21*:  134:        i++;
+        -:  135:    }
+       8*:  136:    t[0]=i-1;
+       8*:  137:    return t;
+        -:  138:
+        -:  139:}
+------------------
+available_dst:
+    #####:  122:unsigned int* available_dst(struct graph_t *graph, enum dir_t dir, unsigned int pos,struct player_t player){
+    #####:  123:    unsigned int length=sqrt(graph->t->size1);
+    #####:  124:    unsigned int* t=(unsigned int *)malloc(sizeof(unsigned int)*(length*length));
+    #####:  125:    for(int i = 0 ; i<length*length; i++){
+    #####:  126:        t[i]=UINT_MAX;
+        -:  127:    }
+    #####:  128:    t[0]=0;
+    #####:  129:    int i=1;
+    #####:  130:    unsigned int tmp=pos;
+    #####:  131:    while(get_neighbor_gen(tmp,dir,graph,player)!=UINT_MAX){
+    #####:  132:        t[i]=get_neighbor_gen(tmp,dir,graph,player);
+    #####:  133:        tmp=t[i];
+    #####:  134:        i++;
+        -:  135:    }
+    #####:  136:    t[0]=i-1;
+    #####:  137:    return t;
+        -:  138:
+        -:  139:}
+------------------
+available_dst:
+        8:  122:unsigned int* available_dst(struct graph_t *graph, enum dir_t dir, unsigned int pos,struct player_t player){
+        8:  123:    unsigned int length=sqrt(graph->t->size1);
+        8:  124:    unsigned int* t=(unsigned int *)malloc(sizeof(unsigned int)*(length*length));
+      520:  125:    for(int i = 0 ; i<length*length; i++){
+      512:  126:        t[i]=UINT_MAX;
+        -:  127:    }
+        8:  128:    t[0]=0;
+        8:  129:    int i=1;
+        8:  130:    unsigned int tmp=pos;
+       29:  131:    while(get_neighbor_gen(tmp,dir,graph,player)!=UINT_MAX){
+       21:  132:        t[i]=get_neighbor_gen(tmp,dir,graph,player);
+       21:  133:        tmp=t[i];
+       21:  134:        i++;
+        -:  135:    }
+        8:  136:    t[0]=i-1;
+        8:  137:    return t;
+        -:  138:
+        -:  139:}
+------------------
+        -:  140:
+        -:  141://a function that returns a random distination
+    #####:  142:int random_dst(struct graph_t *graph, enum dir_t dir, unsigned int pos,struct player_t player){
+    #####:  143:    unsigned int *t=available_dst(graph, dir, pos,player);
+    #####:  144:    int dst=t[(rand()%t[0])+1];
+    #####:  145:    free(t);
+    #####:  146:    return dst;
+        -:  147:
+        -:  148:}
+------------------
+random_dst:
+    #####:  142:int random_dst(struct graph_t *graph, enum dir_t dir, unsigned int pos,struct player_t player){
+    #####:  143:    unsigned int *t=available_dst(graph, dir, pos,player);
+    #####:  144:    int dst=t[(rand()%t[0])+1];
+    #####:  145:    free(t);
+    #####:  146:    return dst;
+        -:  147:
+        -:  148:}
+------------------
+random_dst:
+    #####:  142:int random_dst(struct graph_t *graph, enum dir_t dir, unsigned int pos,struct player_t player){
+    #####:  143:    unsigned int *t=available_dst(graph, dir, pos,player);
+    #####:  144:    int dst=t[(rand()%t[0])+1];
+    #####:  145:    free(t);
+    #####:  146:    return dst;
+        -:  147:
+        -:  148:}
+------------------
+        -:  149:
+        -:  150:
+        -:  151:
+        -:  152://a function that returns the neighbor of a position in specific direction
+     158*:  153:unsigned int get_neighbor_gen(unsigned int pos, enum dir_t direction, struct graph_t* graph, struct player_t player){
+     158*:  154:    if(direction==NO_DIR){
+    #####:  155:            return UINT_MAX;
+        -:  156:    }
+     158*:  157:    unsigned int row_start=graph->t->p[pos];
+     158*:  158:    unsigned int row_end=graph->t->p[pos+1];
+    3887*:  159:    for(size_t j=row_start; j<row_end; j++){
+    3843*:  160:        unsigned int neighbor=graph->t->i[j];
+    3843*:  161:        unsigned int dir=graph->t->data[j];
+    3843*:  162:        if(dir==direction && (!element_in_array(player.other_queens,player.num_queens,neighbor))&&(!element_in_array(player.current_queens,player.num_queens,neighbor))){
+        -:  163:            
+     114*:  164:            return neighbor;
+        -:  165:        }
+        -:  166:    }
+      44*:  167:    return UINT_MAX;
+        -:  168:
+        -:  169:}
+------------------
+get_neighbor_gen:
+    #####:  153:unsigned int get_neighbor_gen(unsigned int pos, enum dir_t direction, struct graph_t* graph, struct player_t player){
+    #####:  154:    if(direction==NO_DIR){
+    #####:  155:            return UINT_MAX;
+        -:  156:    }
+    #####:  157:    unsigned int row_start=graph->t->p[pos];
+    #####:  158:    unsigned int row_end=graph->t->p[pos+1];
+    #####:  159:    for(size_t j=row_start; j<row_end; j++){
+    #####:  160:        unsigned int neighbor=graph->t->i[j];
+    #####:  161:        unsigned int dir=graph->t->data[j];
+    #####:  162:        if(dir==direction && (!element_in_array(player.other_queens,player.num_queens,neighbor))&&(!element_in_array(player.current_queens,player.num_queens,neighbor))){
+        -:  163:            
+    #####:  164:            return neighbor;
+        -:  165:        }
+        -:  166:    }
+    #####:  167:    return UINT_MAX;
+        -:  168:
+        -:  169:}
+------------------
+get_neighbor_gen:
+      158:  153:unsigned int get_neighbor_gen(unsigned int pos, enum dir_t direction, struct graph_t* graph, struct player_t player){
+      158:  154:    if(direction==NO_DIR){
+    #####:  155:            return UINT_MAX;
+        -:  156:    }
+      158:  157:    unsigned int row_start=graph->t->p[pos];
+      158:  158:    unsigned int row_end=graph->t->p[pos+1];
+     3887:  159:    for(size_t j=row_start; j<row_end; j++){
+     3843:  160:        unsigned int neighbor=graph->t->i[j];
+     3843:  161:        unsigned int dir=graph->t->data[j];
+     3843:  162:        if(dir==direction && (!element_in_array(player.other_queens,player.num_queens,neighbor))&&(!element_in_array(player.current_queens,player.num_queens,neighbor))){
+        -:  163:            
+      114:  164:            return neighbor;
+        -:  165:        }
+        -:  166:    }
+       44:  167:    return UINT_MAX;
+        -:  168:
+        -:  169:}
+------------------
+        -:  170:
+        -:  171://return a random move for the queen 
+    #####:  172:struct move_t random_move(struct move_t move, enum dir_t dir, unsigned int queen_index, struct player_t player){
+    #####:  173:    move.queen_src=player.current_queens[queen_index];
+    #####:  174:    move.queen_dst=random_dst(player.graph,dir,player.current_queens[queen_index], player);
+    #####:  175:    player.current_queens[queen_index]=move.queen_dst;
+    #####:  176:    unsigned int queen=move.queen_dst;
+    #####:  177:    enum dir_t dir2=available_dir(queen,player.graph,player);
+    #####:  178:    if(dir2==NO_DIR){
+    #####:  179:        move.arrow_dst=move.queen_src;
+        -:  180:    }
+        -:  181:    else {
+    #####:  182:        move.arrow_dst=random_dst(player.graph,dir2,move.queen_dst,player);
+        -:  183:    }
+    #####:  184:    return move;
+        -:  185:}
+------------------
+random_move:
+    #####:  172:struct move_t random_move(struct move_t move, enum dir_t dir, unsigned int queen_index, struct player_t player){
+    #####:  173:    move.queen_src=player.current_queens[queen_index];
+    #####:  174:    move.queen_dst=random_dst(player.graph,dir,player.current_queens[queen_index], player);
+    #####:  175:    player.current_queens[queen_index]=move.queen_dst;
+    #####:  176:    unsigned int queen=move.queen_dst;
+    #####:  177:    enum dir_t dir2=available_dir(queen,player.graph,player);
+    #####:  178:    if(dir2==NO_DIR){
+    #####:  179:        move.arrow_dst=move.queen_src;
+        -:  180:    }
+        -:  181:    else {
+    #####:  182:        move.arrow_dst=random_dst(player.graph,dir2,move.queen_dst,player);
+        -:  183:    }
+    #####:  184:    return move;
+        -:  185:}
+------------------
+random_move:
+    #####:  172:struct move_t random_move(struct move_t move, enum dir_t dir, unsigned int queen_index, struct player_t player){
+    #####:  173:    move.queen_src=player.current_queens[queen_index];
+    #####:  174:    move.queen_dst=random_dst(player.graph,dir,player.current_queens[queen_index], player);
+    #####:  175:    player.current_queens[queen_index]=move.queen_dst;
+    #####:  176:    unsigned int queen=move.queen_dst;
+    #####:  177:    enum dir_t dir2=available_dir(queen,player.graph,player);
+    #####:  178:    if(dir2==NO_DIR){
+    #####:  179:        move.arrow_dst=move.queen_src;
+        -:  180:    }
+        -:  181:    else {
+    #####:  182:        move.arrow_dst=random_dst(player.graph,dir2,move.queen_dst,player);
+        -:  183:    }
+    #####:  184:    return move;
+        -:  185:}
+------------------
+        -:  186://this function beging positions of the queen for both players 
+       9*:  187:void begining_position(unsigned int* queens[NUM_PLAYERS], unsigned int length){
+       9*:  188:    unsigned int *t=queens[0];
+       9*:  189:    unsigned int *t2=queens[1];
+       9*:  190:    int m=((length/10)+1)*4;
+       9*:  191:    int tmp=0;
+      19*:  192:    for(int i=1;i<=m/4;i++){
+      10*:  193:        t[tmp]=(1+length/7)*i+length*(length-1);
+      10*:  194:        tmp++;
+      10*:  195:        t[tmp]=length-1-(1+length/7)*i+length*(length-1);
+      10*:  196:        tmp++;
+        -:  197:    }
+      19*:  198:    for(int i=1;i<=m/4;i++){
+      10*:  199:        t[tmp]=length*(length-1)-length*(1+length/7)*i;
+      10*:  200:        tmp++;
+      10*:  201:        t[tmp]=length*(length-1)-length*(1+length/7)*i+length-1;
+      10*:  202:        tmp++;
+        -:  203:    }
+       9*:  204:     tmp=0;
+      19*:  205:    for(int i=1;i<=m/4;i++){
+      10*:  206:        t2[tmp]=(1+length/7)*i;
+      10*:  207:        tmp++;
+      10*:  208:        t2[tmp]=length-1-(1+length/7)*i;
+      10*:  209:        tmp++;
+        -:  210:    }
+      19*:  211:    for(int i=1;i<=m/4;i++){
+      10*:  212:        t2[tmp]=length*(1+length/7)*(i);
+      10*:  213:        tmp++;
+      10*:  214:        t2[tmp]=length*(1+length/7)*i+length-1;
+      10*:  215:        tmp++;
+        -:  216:    }
+       9*:  217:}
+------------------
+begining_position:
+    #####:  187:void begining_position(unsigned int* queens[NUM_PLAYERS], unsigned int length){
+    #####:  188:    unsigned int *t=queens[0];
+    #####:  189:    unsigned int *t2=queens[1];
+    #####:  190:    int m=((length/10)+1)*4;
+    #####:  191:    int tmp=0;
+    #####:  192:    for(int i=1;i<=m/4;i++){
+    #####:  193:        t[tmp]=(1+length/7)*i+length*(length-1);
+    #####:  194:        tmp++;
+    #####:  195:        t[tmp]=length-1-(1+length/7)*i+length*(length-1);
+    #####:  196:        tmp++;
+        -:  197:    }
+    #####:  198:    for(int i=1;i<=m/4;i++){
+    #####:  199:        t[tmp]=length*(length-1)-length*(1+length/7)*i;
+    #####:  200:        tmp++;
+    #####:  201:        t[tmp]=length*(length-1)-length*(1+length/7)*i+length-1;
+    #####:  202:        tmp++;
+        -:  203:    }
+    #####:  204:     tmp=0;
+    #####:  205:    for(int i=1;i<=m/4;i++){
+    #####:  206:        t2[tmp]=(1+length/7)*i;
+    #####:  207:        tmp++;
+    #####:  208:        t2[tmp]=length-1-(1+length/7)*i;
+    #####:  209:        tmp++;
+        -:  210:    }
+    #####:  211:    for(int i=1;i<=m/4;i++){
+    #####:  212:        t2[tmp]=length*(1+length/7)*(i);
+    #####:  213:        tmp++;
+    #####:  214:        t2[tmp]=length*(1+length/7)*i+length-1;
+    #####:  215:        tmp++;
+        -:  216:    }
+    #####:  217:}
+------------------
+begining_position:
+        9:  187:void begining_position(unsigned int* queens[NUM_PLAYERS], unsigned int length){
+        9:  188:    unsigned int *t=queens[0];
+        9:  189:    unsigned int *t2=queens[1];
+        9:  190:    int m=((length/10)+1)*4;
+        9:  191:    int tmp=0;
+       19:  192:    for(int i=1;i<=m/4;i++){
+       10:  193:        t[tmp]=(1+length/7)*i+length*(length-1);
+       10:  194:        tmp++;
+       10:  195:        t[tmp]=length-1-(1+length/7)*i+length*(length-1);
+       10:  196:        tmp++;
+        -:  197:    }
+       19:  198:    for(int i=1;i<=m/4;i++){
+       10:  199:        t[tmp]=length*(length-1)-length*(1+length/7)*i;
+       10:  200:        tmp++;
+       10:  201:        t[tmp]=length*(length-1)-length*(1+length/7)*i+length-1;
+       10:  202:        tmp++;
+        -:  203:    }
+        9:  204:     tmp=0;
+       19:  205:    for(int i=1;i<=m/4;i++){
+       10:  206:        t2[tmp]=(1+length/7)*i;
+       10:  207:        tmp++;
+       10:  208:        t2[tmp]=length-1-(1+length/7)*i;
+       10:  209:        tmp++;
+        -:  210:    }
+       19:  211:    for(int i=1;i<=m/4;i++){
+       10:  212:        t2[tmp]=length*(1+length/7)*(i);
+       10:  213:        tmp++;
+       10:  214:        t2[tmp]=length*(1+length/7)*i+length-1;
+       10:  215:        tmp++;
+        -:  216:    }
+        9:  217:}
+------------------
+        -:  218:
+        -:  219://a function that frees the memory allocated for a player
+    #####:  220:void free_player(struct player_t player){
+    #####:  221:    free(player.current_queens);
+    #####:  222:    free(player.other_queens);
+    #####:  223:}
+------------------
+free_player:
+    #####:  220:void free_player(struct player_t player){
+    #####:  221:    free(player.current_queens);
+    #####:  222:    free(player.other_queens);
+    #####:  223:}
+------------------
+free_player:
+    #####:  220:void free_player(struct player_t player){
+    #####:  221:    free(player.current_queens);
+    #####:  222:    free(player.other_queens);
+    #####:  223:}
+------------------
